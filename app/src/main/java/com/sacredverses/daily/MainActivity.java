@@ -604,7 +604,7 @@ public class MainActivity extends Activity {
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
                                 + "Max Müller's Dhammapada (1881), the JPS 1917 Tanakh, and Macauliffe's "
-                                + "The Sikh Religion (1909).\n\nVersion 2.6 · Made with care.")
+                                + "The Sikh Religion (1909).\n\nVersion 2.7 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }
