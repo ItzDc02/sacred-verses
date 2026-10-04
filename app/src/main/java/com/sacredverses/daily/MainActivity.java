@@ -471,27 +471,78 @@ public class MainActivity extends Activity {
             supportButton.setVisibility(View.VISIBLE);
             supportButton.setOnClickListener(v -> {
                 int rot = prefs.getInt("upi_rot", 0);
-                String upiId = ids.get(Math.abs(rot) % ids.size());
+                final String upiId = ids.get(Math.abs(rot) % ids.size());
                 prefs.edit().putInt("upi_rot", rot + 1).apply();
-                // UPI deep-link encoding (NPCI spec): encode params, BUT keep the
-                // VPA's @ literal — encoding it to %40 breaks payee resolution
-                // (v2.7 bug), while raw spaces make BHIM reject the request
-                // entirely (v2.8 bug). Uri.encode(s, "@") does exactly this.
-                String uri = "upi://pay?pa=" + Uri.encode(upiId, "@")
-                        + "&pn=" + Uri.encode(upiName)
-                        + "&cu=INR"
-                        + "&tn=" + Uri.encode("Support Sacred Verses app");
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
-                } catch (Exception e) {
-                    Toast.makeText(this, "No UPI app found on this phone",
-                            Toast.LENGTH_SHORT).show();
-                }
+                showSupportDialog(upiId, upiName);
             });
         } catch (Exception ignored) {
         }
     }
 
+    /** Support dialog: shows the UPI ID as copyable text with written
+     *  instructions (works on every UPI app — no intent-compatibility lottery),
+     *  plus a one-tap button that fires the UPI intent directly. */
+    private void showSupportDialog(final String upiId, final String upiName) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad, pad, pad);
+
+        TextView intro = new TextView(this);
+        intro.setText("If this app brightens your mornings, consider supporting it — "
+                + "every rupee keeps it free forever.");
+        layout.addView(intro);
+
+        TextView idLabel = new TextView(this);
+        idLabel.setText("\nOur UPI ID (tap to copy):");
+        layout.addView(idLabel);
+
+        TextView idView = new TextView(this);
+        idView.setText(upiId);
+        idView.setTypeface(android.graphics.Typeface.MONOSPACE);
+        idView.setTextSize(17);
+        idView.setPadding(pad, pad / 2, pad, pad / 2);
+        idView.setBackgroundColor(0xFFF0F0F0);
+        idView.setOnClickListener(v -> {
+            ClipboardManager cm =
+                    (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(ClipData.newPlainText("UPI ID", upiId));
+            Toast.makeText(this, "UPI ID copied", Toast.LENGTH_SHORT).show();
+        });
+        layout.addView(idView);
+
+        TextView howto = new TextView(this);
+        howto.setText("\nHow to pay:\n1. Tap the ID above to copy it\n"
+                + "2. Open GPay / PhonePe / Paytm / BHIM\n"
+                + "3. Choose \"Pay to UPI ID\", paste it, send any amount");
+        layout.addView(howto);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Support Sacred Verses")
+                .setView(layout)
+                .setNegativeButton("Close", null)
+                .setPositiveButton("Pay now via UPI app",
+                        (d, w) -> fireUpiIntent(upiId, upiName))
+                .show();
+    }
+
+    /** Fires the UPI pay intent. Works on most apps; BHIM and a few others are
+     *  picky about intent formats, which is why the copy-paste route exists. */
+    private void fireUpiIntent(String upiId, String upiName) {
+        // UPI deep-link encoding (NPCI spec): encode params, BUT keep the VPA's
+        // @ literal — encoding it to %40 breaks payee resolution, while raw
+        // spaces make BHIM reject the request entirely.
+        String uri = "upi://pay?pa=" + Uri.encode(upiId, "@")
+                + "&pn=" + Uri.encode(upiName)
+                + "&cu=INR"
+                + "&tn=" + Uri.encode("Support Sacred Verses app");
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
+        } catch (Exception e) {
+            Toast.makeText(this, "No UPI app found on this phone",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
     /** Disclaimer shown EVERY time the wallpaper switch is flipped, before anything changes. */
     private void showWallpaperDialog(boolean wantOn) {
         if (wantOn) {
@@ -608,7 +659,7 @@ public class MainActivity extends Activity {
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
                                 + "Max Müller's Dhammapada (1881), the JPS 1917 Tanakh, and Macauliffe's "
-                                + "The Sikh Religion (1909).\n\nVersion 2.9 · Made with care.")
+                                + "The Sikh Religion (1909).\n\nVersion 3.0 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }
