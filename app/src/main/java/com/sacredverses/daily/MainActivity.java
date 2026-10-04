@@ -473,14 +473,14 @@ public class MainActivity extends Activity {
                 int rot = prefs.getInt("upi_rot", 0);
                 String upiId = ids.get(Math.abs(rot) % ids.size());
                 prefs.edit().putInt("upi_rot", rot + 1).apply();
-                // NOTE: do NOT Uri.encode() these values. Encoding turns the VPA's
-                // @ into %40, which breaks the payee address — UPI apps then
-                // can't resolve who to pay (and show ugly %20/%40 like in testing).
-                // Raw values parse fine here (none contain & or ?).
-                String uri = "upi://pay?pa=" + upiId
-                        + "&pn=" + upiName
+                // UPI deep-link encoding (NPCI spec): encode params, BUT keep the
+                // VPA's @ literal — encoding it to %40 breaks payee resolution
+                // (v2.7 bug), while raw spaces make BHIM reject the request
+                // entirely (v2.8 bug). Uri.encode(s, "@") does exactly this.
+                String uri = "upi://pay?pa=" + Uri.encode(upiId, "@")
+                        + "&pn=" + Uri.encode(upiName)
                         + "&cu=INR"
-                        + "&tn=" + "Support Sacred Verses app";
+                        + "&tn=" + Uri.encode("Support Sacred Verses app");
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
                 } catch (Exception e) {
@@ -608,7 +608,7 @@ public class MainActivity extends Activity {
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
                                 + "Max Müller's Dhammapada (1881), the JPS 1917 Tanakh, and Macauliffe's "
-                                + "The Sikh Religion (1909).\n\nVersion 2.8 · Made with care.")
+                                + "The Sikh Religion (1909).\n\nVersion 2.9 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }
