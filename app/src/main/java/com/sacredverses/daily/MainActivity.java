@@ -446,15 +446,33 @@ public class MainActivity extends Activity {
     }
 
     /** "Support" button: opens the user's UPI app for a voluntary contribution.
-     *  Shown only when a real UPI id is configured in support.json. */
+     *  Shown only when real UPI id(s) are configured in support.json.
+     *  Rotates through the configured ids round-robin on every tap, so a
+     *  problematic id is automatically skipped on the next attempt.
+     *  Note: the payment itself completes inside the UPI app, which never
+     *  reports success/failure back — true failure detection isn't possible. */
     private void setupSupportButton() {
         try {
             JSONObject cfg = new JSONObject(loadAsset("support.json"));
-            final String upiId = cfg.optString("upi_id", "");
             final String upiName = cfg.optString("upi_name", "Sacred Verses");
-            if (upiId.isEmpty() || upiId.contains("REPLACE_WITH")) return;
+            final java.util.ArrayList<String> ids = new java.util.ArrayList<>();
+            JSONArray arr = cfg.optJSONArray("upi_ids");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    String id = arr.optString(i, "").trim();
+                    if (!id.isEmpty() && !id.contains("REPLACE_WITH")) ids.add(id);
+                }
+            } else {
+                // backward compatibility with the old single-id format
+                String id = cfg.optString("upi_id", "").trim();
+                if (!id.isEmpty() && !id.contains("REPLACE_WITH")) ids.add(id);
+            }
+            if (ids.isEmpty()) return;
             supportButton.setVisibility(View.VISIBLE);
             supportButton.setOnClickListener(v -> {
+                int rot = prefs.getInt("upi_rot", 0);
+                String upiId = ids.get(Math.abs(rot) % ids.size());
+                prefs.edit().putInt("upi_rot", rot + 1).apply();
                 String uri = "upi://pay?pa=" + Uri.encode(upiId)
                         + "&pn=" + Uri.encode(upiName)
                         + "&cu=INR"
@@ -586,7 +604,7 @@ public class MainActivity extends Activity {
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
                                 + "Max Müller's Dhammapada (1881), the JPS 1917 Tanakh, and Macauliffe's "
-                                + "The Sikh Religion (1909).\n\nVersion 2.5 · Made with care.")
+                                + "The Sikh Religion (1909).\n\nVersion 2.6 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }
