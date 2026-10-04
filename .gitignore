@@ -1,0 +1,19 @@
+# Personal secrets — NEVER commit these
+app/src/main/assets/support.json
+
+# Build outputs & keystores
+manual-out/
+*.apk
+*.keystore
+*.jks
+
+# Local environment (SDK, tooling) — not source
+android-sdk/
+_tools/
+
+# Gradle / IDE
+.gradle/
+build/
+.idea/
+*.iml
+local.properties

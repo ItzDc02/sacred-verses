@@ -1,0 +1,48 @@
+PRIVACY POLICY — Sacred Verses
+Last updated: 4 October 2026
+
+WHAT THIS APP DOES
+Sacred Verses shows you one verse from the world's scriptures every morning,
+as a phone notification. All verses are stored inside the app — it works
+fully offline and needs no account.
+
+DATA WE COLLECT
+None. We do not create accounts, do not ask for your name, email, or phone
+number, and do not track what you read. Your saved (favorite) verses are
+stored only on your phone, and never leave it.
+
+NOTIFICATIONS
+The app sends one daily notification with the verse of the day. You can
+change the time or switch it off inside the app. On Android 13 and above,
+the app asks your permission before sending notifications.
+
+LOCKSCREEN WALLPAPER
+If enabled (it is by default), the app sets your lock-screen wallpaper each
+morning to a beautiful image of the day's verse. Your previous wallpaper is
+replaced — switch this off in the app's settings any time to keep your own
+wallpaper.
+
+SPONSORED CONTENT
+The app may show clearly-labeled sponsored recommendations (for example,
+books related to the scriptures). These links may be affiliate links: if
+you buy something after tapping one, we may earn a small commission at no
+extra cost to you. Tapping a sponsored link opens your web browser, and
+that website has its own privacy policy.
+
+ADVERTISING (FUTURE VERSIONS)
+Future versions of the app may show ads served by Google AdMob. Google may
+collect your advertising ID and device information to show and measure ads.
+You can opt out of personalized ads in your phone's Settings → Google → Ads.
+Learn more at https://policies.google.com/privacy
+
+PERMISSIONS THE APP USES
+- Notifications: to deliver the daily verse.
+- Run at startup: to re-schedule the daily verse after your phone restarts.
+- Exact alarms (only if you grant it): to deliver the verse at the exact
+  time you chose.
+
+CHANGES TO THIS POLICY
+If this policy changes, the updated version will be included inside the app.
+
+CONTACT
+Questions about privacy: sacredversesapp@gmail.com
