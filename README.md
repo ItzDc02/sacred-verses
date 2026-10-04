@@ -1,4 +1,4 @@
-# Sacred Verses — Daily Wisdom (v2.5)
+# Sacred Verses — Daily Wisdom (v2.6)
 
 A native Android app that delivers one verse from the world's scriptures every
 morning — as a phone notification AND as your lockscreen wallpaper, so the
@@ -69,9 +69,12 @@ A "♥ Support Sacred Verses" button appears in Settings once configured —
 it opens the user's UPI app (GPay/PhonePe/Paytm) with your UPI id filled in.
 Zero fees, money lands directly in your account.
 
-To enable: open `app/src/main/assets/support.json` and replace
-`REPLACE_WITH_YOUR_UPI_ID` with your UPI id (e.g. `yourname@okhdfcbank`).
-Rebuild and share. The button stays hidden until a real id is set.
+To enable: open `app/src/main/assets/support.json` and put your UPI id(s) in
+the `upi_ids` array (e.g. `yourname@okhdfcbank`). Multiple ids are rotated
+round-robin on every tap, so a problematic id is skipped next time.
+Rebuild and share. The button stays hidden until at least one real id is set.
+**Never commit this file** — it's in `.gitignore`; the repo only carries
+`support.json.example`.
 
 ### Path C — AdMob banners (upgrade, needs Android Studio)
 
