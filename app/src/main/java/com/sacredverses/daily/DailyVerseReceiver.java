@@ -12,7 +12,7 @@ public class DailyVerseReceiver extends BroadcastReceiver {
         SharedPreferences prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
         String faith = prefs.getString("pref_faith", "All");
         Verse verse = VerseRepository.verseOfDay(ctx, faith);
-        if (prefs.getBoolean("wallpaper_enabled", true)) {
+        if (prefs.getBoolean("wallpaper_enabled", false)) {
             boolean ok = WallpaperHelper.setVerseWallpaper(ctx, verse);
             if (ok) {
                 prefs.edit()

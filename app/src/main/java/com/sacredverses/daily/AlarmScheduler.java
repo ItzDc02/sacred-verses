@@ -20,7 +20,7 @@ public class AlarmScheduler {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         boolean notif = prefs.getBoolean("notif_enabled", true);
-        boolean wall = prefs.getBoolean("wallpaper_enabled", true);
+        boolean wall = prefs.getBoolean("wallpaper_enabled", false);
         if (!notif && !wall) {
             am.cancel(pi);
             return;

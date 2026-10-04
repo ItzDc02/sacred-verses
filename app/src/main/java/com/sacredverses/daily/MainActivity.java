@@ -137,7 +137,7 @@ public class MainActivity extends Activity {
     }
 
     private void maybeRefreshWallpaper() {
-        if (!prefs.getBoolean("wallpaper_enabled", true)) return;
+        if (!prefs.getBoolean("wallpaper_enabled", false)) return;
         String today = LocalDate.now().toString();
         if (today.equals(prefs.getString("wallpaper_day", ""))) return;
         boolean ok = WallpaperHelper.setVerseWallpaper(this,
@@ -430,7 +430,7 @@ public class MainActivity extends Activity {
                     Toast.LENGTH_SHORT).show();
         });
 
-        wallpaperSwitch.setChecked(prefs.getBoolean("wallpaper_enabled", true));
+        wallpaperSwitch.setChecked(prefs.getBoolean("wallpaper_enabled", false));
         wallpaperSwitch.setOnCheckedChangeListener((v, isChecked) -> {
             if (suppressWallpaperToggle) return;
             // revert the visual flip — the real change happens only
@@ -640,7 +640,7 @@ public class MainActivity extends Activity {
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
                                 + "Max Müller's Dhammapada (1881), the JPS 1917 Tanakh, and Macauliffe's "
-                                + "The Sikh Religion (1909).\n\nVersion 3.1 · Made with care.")
+                                + "The Sikh Religion (1909).\n\nVersion 1.0 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }
