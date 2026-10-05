@@ -20,7 +20,7 @@ One verse from the world's scriptures, every morning. A free, lightweight Androi
 - **Fresh look every morning** — the home screen theme rotates daily through seven palettes, and dresses up for festivals (Diwali, Holi, Christmas, Eid, Guru Nanak Jayanti, Vesak) with a greeting and the story behind the day.
 - **🔊 Listen** — hear any verse read aloud with your phone's built-in voice, in the verse's own language.
 - **Dark theme** — easy on the eyes for late-night and early-morning reading.
-- **Six languages** — read every faith in its own tongue: English, हिन्दी (Kabir, Tulsidas, Rahim), संस्कृतम् (Gita shlokas, Upanishads), العربية (Qur'anic Arabic), ਪੰਜਾਬੀ (Gurbani), Pali (Dhammapada). The whole app — daily verse, browse, history, widget, wallpaper, sharing, read-aloud — follows your language.
+- **Six languages** — read every faith in its own tongue: English, हिन्दी (Kabir, Tulsidas, Rahim), संस्कृतम् (Gita shlokas, Upanishads), العربية (Qur'anic Arabic), ਪੰਜਾਬੀ (Gurbani), Pali (Dhammapada). The whole app — daily verse, browse, history, widget, wallpaper, sharing, read-aloud — follows your language. Language options adapt to context: pick a faith and only its languages are offered (e.g. Christianity shows English only), and Browse has its own language row driven by the active filter.
 
 All verses are quoted verbatim from public-domain translations (KJV Bible, Sir Edwin Arnold's Gita, Pickthall's Qur'an, Müller's Dhammapada, Macauliffe's Sikh Religion), attributed in-app. The Hindi collection draws on Kabir, Tulsidas, Rahim, and Sanskrit scriptures; Sanskrit, Arabic, Punjabi and Pali verses are quoted verbatim from their scriptures — all public domain.
 

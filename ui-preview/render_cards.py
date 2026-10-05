@@ -196,6 +196,53 @@ def render_card(verse, lang, path, dark_buttons=False):
     img.save(path)
     print('wrote', path)
 
+def render_browse_card(verse, lang, path, zoom_path):
+    """Replicates item_verse.xml geometry: card_bg (16dp radius, 1dp stroke)
+    with the 4dp faith accent strip (16dp top corners). Also writes a 4x
+    zoom of the top-left corner so strip/corner alignment can be eyeballed."""
+    S = 3  # px per dp
+    W = 1080
+    cw = W - 32 * S          # 16dp margins
+    R = 16 * S
+    STRIP = 4 * S
+    accent = FAITH_COLORS[verse['faith']]
+    # measure
+    fv = font(SERIF, 16 * S)
+    d0 = ImageDraw.Draw(Image.new('RGB', (8, 8)))
+    lines = wrap(d0, '\u201c' + harness_text(verse, lang) + '\u201d', fv, cw - 32 * S)
+    lh = int(16 * S * 1.35)
+    H = int(STRIP + 12 * S + lh * len(lines) + 8 * S + 12 * S + 2 * S + 11 * S
+            + 4 * S + 16 * S + 12 * S)
+    # page bg (light) so card edges are visible
+    page = Image.new('RGB', (W, H + 40 * S), (240, 238, 245))
+    card = Image.new('RGBA', (cw, H), (255, 255, 255, 255))
+    # card body with 16dp rounded corners + 1dp stroke
+    mask = Image.new('L', (cw, H), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, cw, H], radius=R, fill=255)
+    d = ImageDraw.Draw(card)
+    d.rounded_rectangle([0, 0, cw, H], radius=R, outline=(200, 195, 215), width=1 * S)
+    # accent strip: full-bleed, 16dp top corners only
+    smask = Image.new('L', (cw, STRIP), 0)
+    ImageDraw.Draw(smask).rounded_rectangle([0, 0, cw, STRIP + R], radius=R, fill=255)
+    strip = Image.new('RGBA', (cw, STRIP), accent + (255,))
+    strip.putalpha(smask)
+    card.alpha_composite(strip, (0, 0))
+    card.putalpha(mask)
+    page.paste(card, (16 * S, 20 * S), card)
+    # verse text
+    dp_ = ImageDraw.Draw(page)
+    y = 20 * S + STRIP + 12 * S
+    for i, ln in enumerate(lines):
+        dp_.text((16 * S + 16 * S, y + i * lh), ln, font=fv, fill=(30, 27, 45))
+    page.save(path)
+    print('wrote', path)
+    # 4x zoom of the top-left corner
+    corner = page.crop((16 * S - 8 * S, 20 * S - 8 * S,
+                        16 * S + 56 * S, 20 * S + 56 * S))
+    corner = corner.resize((corner.width * 4, corner.height * 4), Image.NEAREST)
+    corner.save(zoom_path)
+    print('wrote', zoom_path)
+
 if __name__ == '__main__':
     import os
     os.makedirs(OUT, exist_ok=True)
@@ -207,3 +254,5 @@ if __name__ == '__main__':
     render_card(en_v, 'en', OUT + 'daily_card_en.png')
     render_card(ar_v, 'ar', OUT + 'daily_card_ar.png')
     render_card(en_v, 'sa', OUT + 'daily_card_sa.png')
+    render_browse_card(by_id['islam-01'], 'en', OUT + 'browse_card.png',
+                       OUT + 'browse_card_corner_zoom.png')

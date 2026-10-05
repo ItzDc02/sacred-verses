@@ -14,6 +14,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Outline;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
@@ -22,6 +23,7 @@ import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -72,7 +74,7 @@ public class MainActivity extends Activity {
     private Button todayFav, todayShare, todayImageShare, todayListen,
             privacyButton, aboutButton, supportButton, inviteButton;
     private Switch notifSwitch, wallpaperSwitch, darkSwitch;
-    private LinearLayout filterRow, timePresetsRow, faithRow, textSizeRow,
+    private LinearLayout filterRow, browseLangRow, timePresetsRow, faithRow, textSizeRow,
             languageRow, sponsorSlot;
     private ListView verseList;
 
@@ -156,6 +158,7 @@ public class MainActivity extends Activity {
         todayListen = findViewById(R.id.todayListen);
         sponsorSlot = findViewById(R.id.sponsorSlot);
         filterRow = findViewById(R.id.filterRow);
+        browseLangRow = findViewById(R.id.browseLangRow);
         faithRow = findViewById(R.id.faithRow);
         timePresetsRow = findViewById(R.id.timePresetsRow);
         textSizeRow = findViewById(R.id.textSizeRow);
@@ -172,6 +175,12 @@ public class MainActivity extends Activity {
 
         dateLine.setText(
                 new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(new Date()));
+
+        // tactile press feedback on the daily-card action buttons
+        AnimHelper.pressScale(todayFav);
+        AnimHelper.pressScale(todayShare);
+        AnimHelper.pressScale(todayImageShare);
+        AnimHelper.pressScale(todayListen);
 
         applyTheme();
         setupNav();
@@ -347,6 +356,10 @@ public class MainActivity extends Activity {
     // ---------- bottom navigation ----------
 
     private void setupNav() {
+        AnimHelper.pressScale(navHome);
+        AnimHelper.pressScale(navBrowse);
+        AnimHelper.pressScale(navHistory);
+        AnimHelper.pressScale(navSettings);
         navHome.setOnClickListener(v -> showScreen(0));
         navBrowse.setOnClickListener(v -> showScreen(1));
         navHistory.setOnClickListener(v -> showScreen(2));
@@ -362,7 +375,11 @@ public class MainActivity extends Activity {
         paintNav(navBrowse, which == 1);
         paintNav(navHistory, which == 2);
         paintNav(navSettings, which == 3);
+        // keep the contextual language selectors in sync with the latest
+        // faith/filter state every time their screen is shown
+        if (which == 1) setupBrowseLangRow();
         if (which == 2) setupHistory();
+        if (which == 3) setupLanguageRow();
     }
 
     private void paintNav(Button b, boolean sel) {
@@ -370,6 +387,21 @@ public class MainActivity extends Activity {
         b.setTypeface(b.getTypeface(), sel
                 ? android.graphics.Typeface.BOLD
                 : android.graphics.Typeface.NORMAL);
+    }
+
+    // ---------- card clipping ----------
+
+    /** Clips a card_bg view to its own 16dp rounded outline, so no child
+     *  (e.g. the browse card's full-bleed faith accent strip) can ever paint
+     *  past the card's rounded corners — bulletproof against sub-pixel bleed. */
+    private void clipCard(View v) {
+        v.setClipToOutline(true);
+        v.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(16));
+            }
+        });
     }
 
     // ---------- verse of the day card ----------
@@ -527,6 +559,7 @@ public class MainActivity extends Activity {
             b.setOnClickListener(v -> {
                 currentFilter = f;
                 paintFilters();
+                setupBrowseLangRow();
                 adapter.refresh();
             });
             b.setTag(faith);
@@ -555,12 +588,26 @@ public class MainActivity extends Activity {
                 myFaith = f;
                 prefs.edit().putString("pref_faith", f).apply();
                 paintFaithRow();
+                // contextual languages: if the current language has no verses
+                // for the new faith, drop back to English with an explanation
+                String lang = VerseRepository.verseLang(MainActivity.this);
+                if (!LanguageHelper.languagesForFaith(MainActivity.this, f)
+                        .contains(lang)) {
+                    prefs.edit().putString("verse_lang", "en").apply();
+                    Toast.makeText(MainActivity.this,
+                            VerseRepository.langDisplayName(lang)
+                                    + " isn't available for " + f
+                                    + " — switched to English",
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this,
+                            "All".equals(f) ? "Daily verse: all faiths"
+                                    : "Daily verse: " + f + " only",
+                            Toast.LENGTH_SHORT).show();
+                }
+                setupLanguageRow();
                 setupVerseOfDay();
                 AlarmScheduler.scheduleNext(this);
-                Toast.makeText(this,
-                        "All".equals(f) ? "Daily verse: all faiths"
-                                : "Daily verse: " + f + " only",
-                        Toast.LENGTH_SHORT).show();
             });
             b.setTag(faith);
             faithRow.addView(b);
@@ -581,6 +628,7 @@ public class MainActivity extends Activity {
         b.setText(text);
         b.setAllCaps(false);
         b.setMinHeight(dp(44)); // comfortable touch target
+        AnimHelper.pressScale(b); // tactile feedback on every chip
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -642,6 +690,9 @@ public class MainActivity extends Activity {
                 h.fav = convertView.findViewById(R.id.favButton);
                 h.share = convertView.findViewById(R.id.shareButton);
                 h.image = convertView.findViewById(R.id.imageButton);
+                // clip the card to its rounded outline: the full-bleed faith
+                // accent strip must never paint past the card's corners
+                clipCard(convertView);
                 convertView.setTag(h);
             } else {
                 h = (ViewHolder) convertView.getTag();
@@ -655,14 +706,17 @@ public class MainActivity extends Activity {
             h.ref.setText(verse.faith + " · " + verse.ref);
             h.source.setText(verse.source);
             h.fav.setText(favs.contains(verse.id) ? "★" : "☆");
+            AnimHelper.pressScale(h.fav);
             h.fav.setOnClickListener(v -> {
                 toggleFav(verse.id);
                 notifyDataSetChanged();
                 refreshFavButton(VerseRepository.verseToday(MainActivity.this).id);
             });
+            AnimHelper.pressScale(h.share);
             h.share.setOnClickListener(v -> shareVerse(verse));
             h.image.setVisibility(
                     Build.VERSION.SDK_INT >= 29 ? View.VISIBLE : View.GONE);
+            AnimHelper.pressScale(h.image);
             h.image.setOnClickListener(v -> shareVerseAsImage(verse));
             return convertView;
         }
@@ -706,6 +760,7 @@ public class MainActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.VERTICAL);
             row.setBackgroundResource(R.drawable.card_bg);
+            clipCard(row);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -797,6 +852,7 @@ public class MainActivity extends Activity {
         shareText.setMinWidth(0);
         shareText.setPadding(dp(10), 0, dp(10), 0);
         shareText.setTextColor(getColor(R.color.primary));
+        AnimHelper.pressScale(shareText);
         shareText.setOnClickListener(v -> shareVerse(verse));
         btnRow.addView(shareText);
         if (Build.VERSION.SDK_INT >= 29) {
@@ -809,6 +865,7 @@ public class MainActivity extends Activity {
             shareImg.setMinWidth(0);
             shareImg.setPadding(dp(10), 0, dp(10), 0);
             shareImg.setTextColor(getColor(R.color.primary));
+            AnimHelper.pressScale(shareImg);
             shareImg.setOnClickListener(v -> shareVerseAsImage(verse));
             btnRow.addView(shareImg);
         }
@@ -821,6 +878,7 @@ public class MainActivity extends Activity {
         listen.setMinWidth(0);
         listen.setPadding(dp(10), 0, dp(10), 0);
         listen.setTextColor(getColor(R.color.primary));
+        AnimHelper.pressScale(listen);
         listen.setOnClickListener(v -> TtsSpeaker.toggle(MainActivity.this, verse));
         btnRow.addView(listen);
         layout.addView(btnRow);
@@ -900,31 +958,48 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Verse language: one chip per language that has bundled content.
-     *  Switching resets the faith preference when the chosen faith has no
-     *  verses in the new language, then recreates so everything re-renders. */
+    /** Verse language: chips for the languages that actually have verses
+     *  for the current "My faith" choice — inapplicable options disappear
+     *  instead of silently falling back to English. Recreated on switch so
+     *  everything re-renders. */
     private void setupLanguageRow() {
         languageRow.removeAllViews();
         String cur = VerseRepository.verseLang(this);
-        for (String code : VerseRepository.LANG_CODES) {
+        List<String> langs = LanguageHelper.languagesForFaith(this, myFaith);
+        if (!langs.contains(cur)) {
+            // safety net (normally reset when the faith changed)
+            cur = "en";
+            prefs.edit().putString("verse_lang", cur).apply();
+        }
+        for (String code : langs) {
             final String val = code;
             Button b = makeChip(VerseRepository.langDisplayName(code));
             paintChip(b, cur.equals(val));
             b.setOnClickListener(v -> {
                 prefs.edit().putString("verse_lang", val).apply();
                 currentFilter = "All";
-                if (!VerseRepository.faithHasLang(MainActivity.this, val, myFaith)) {
-                    myFaith = "All";
-                    prefs.edit().putString("pref_faith", "All").apply();
-                    Toast.makeText(MainActivity.this,
-                            "Faith filter reset — no "
-                                    + VerseRepository.langDisplayName(val)
-                                    + " verses for that faith yet",
-                            Toast.LENGTH_SHORT).show();
-                }
                 recreate();
             });
             languageRow.addView(b);
+        }
+    }
+
+    /** Browse language row: a slim chip row under the faith filters, driven
+     *  by the current browse filter (All → all 6; a faith → its languages;
+     *  Saved → union of the saved verses' faiths' languages). Writes the
+     *  same verse_lang pref as Settings. */
+    private void setupBrowseLangRow() {
+        browseLangRow.removeAllViews();
+        String cur = VerseRepository.verseLang(this);
+        for (String code : LanguageHelper.languagesForFilter(this, currentFilter)) {
+            final String val = code;
+            Button b = makeChip(VerseRepository.langDisplayName(code));
+            paintChip(b, cur.equals(val));
+            b.setOnClickListener(v -> {
+                prefs.edit().putString("verse_lang", val).apply();
+                recreate();
+            });
+            browseLangRow.addView(b);
         }
     }
 
@@ -1108,6 +1183,10 @@ public class MainActivity extends Activity {
     // ---------- footer ----------
 
     private void setupFooter() {
+        AnimHelper.pressScale(privacyButton);
+        AnimHelper.pressScale(aboutButton);
+        AnimHelper.pressScale(supportButton);
+        AnimHelper.pressScale(inviteButton);
         privacyButton.setOnClickListener(v ->
                 startActivity(new Intent(this, PrivacyActivity.class)));
         aboutButton.setOnClickListener(v ->
@@ -1119,7 +1198,7 @@ public class MainActivity extends Activity {
                                 + "Max Müller's Dhammapada (1881), and Macauliffe's "
                                 + "The Sikh Religion (1909) — plus verses in Hindi, Sanskrit, "
                                 + "Arabic, Punjabi and Pali.\n\n"
-                                + "Version 4.0 · Made with care.")
+                                + "Version 4.1 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }

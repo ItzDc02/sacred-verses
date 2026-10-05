@@ -252,6 +252,21 @@
                     android:layout_height="wrap_content" />
             </HorizontalScrollView>
 
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:scrollbars="none"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <LinearLayout
+                    android:id="@+id/browseLangRow"
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </HorizontalScrollView>
+
             <ListView
                 android:id="@+id/verseList"
                 android:layout_width="match_parent"
@@ -337,6 +352,7 @@
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="16dp"
                     android:background="@drawable/card_bg"
+                    android:clipToOutline="true"
                     android:padding="16dp">
 
                     <Switch
