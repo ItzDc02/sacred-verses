@@ -39,7 +39,11 @@ echo "[5/7] adding classes.dex to apk..."
 cd "$OUT/dex" && zip -X -q ../app-unsigned.apk classes.dex && cd ..
 
 echo "[6/7] debug keystore..."
-KS="$OUT/debug.keystore"
+# NOTE: the keystore lives in the project root, NOT in $OUT — $OUT is wiped
+# at the start of every build (rm -rf), and a fresh key each build breaks
+# Android updates ("package conflicts with an existing package"). This key
+# must stay stable across builds so updates install cleanly.
+KS="$PROJ/debug.keystore"
 if [ ! -f "$KS" ]; then
   "$JDK/bin/keytool" -genkeypair -keystore "$KS" -alias androiddebugkey \
     -storepass android -keypass android -keyalg RSA -keysize 2048 \
