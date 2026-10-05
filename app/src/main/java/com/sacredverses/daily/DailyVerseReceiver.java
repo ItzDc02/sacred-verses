@@ -23,6 +23,7 @@ public class DailyVerseReceiver extends BroadcastReceiver {
         if (prefs.getBoolean("notif_enabled", true)) {
             NotificationHelper.showVerse(ctx, verse);
         }
+        VerseWidgetProvider.updateWidgets(ctx);
         AlarmScheduler.scheduleNext(ctx);
     }
 }

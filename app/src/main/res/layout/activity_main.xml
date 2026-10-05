@@ -39,6 +39,15 @@
             android:layout_marginTop="2dp"
             android:textSize="11sp"
             android:textColor="#CFC8E8" />
+
+        <TextView
+            android:id="@+id/streakLine"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FFE9A8" />
     </LinearLayout>
 
     <!-- Content -->
@@ -128,6 +137,14 @@
                             android:layout_height="wrap_content"
                             android:text="Share"
                             android:textColor="@color/primary" />
+
+                        <Button
+                            android:id="@+id/todayImageShare"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🖼 Image"
+                            android:textColor="@color/primary" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -195,6 +212,48 @@
                 android:textColor="@color/muted"
                 android:textSize="14sp" />
         </LinearLayout>
+
+        <!-- HISTORY -->
+        <ScrollView
+            android:id="@+id/historyScroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
+                    android:text="VERSE HISTORY"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/muted"
+                    android:letterSpacing="0.12" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="16dp"
+                    android:text="Your last 30 days of verses. Tap any day to revisit it."
+                    android:textSize="12sp"
+                    android:textColor="@color/muted" />
+
+                <LinearLayout
+                    android:id="@+id/historyList"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="16dp" />
+            </LinearLayout>
+        </ScrollView>
 
         <!-- SETTINGS -->
         <ScrollView
@@ -280,6 +339,33 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
                     </HorizontalScrollView>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="TEXT SIZE"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/muted"
+                        android:letterSpacing="0.12" />
+
+                    <LinearLayout
+                        android:id="@+id/textSizeRow"
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
+
+                    <Button
+                        android:id="@+id/inviteButton"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="💌 Invite friends to Sacred Verses"
+                        android:textSize="13sp"
+                        android:textColor="@color/primary" />
                 </LinearLayout>
 
                 <Button
@@ -353,6 +439,15 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="📖 Browse"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/navHistory"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📅 History"
             android:textSize="13sp" />
 
         <Button

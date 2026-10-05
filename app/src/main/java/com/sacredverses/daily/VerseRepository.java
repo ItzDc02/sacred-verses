@@ -53,11 +53,15 @@ public class VerseRepository {
         return verseOfDay(ctx, "All");
     }
 
-    /** Verse of the day for one faith (or "All" for the global rotation).
-     *  In "All" mode the faiths rotate: each day brings a different tradition,
-     *  cycling through that faith's verses in order. */
+    /** Verse of the day for one faith (or "All" for the global rotation). */
     public static Verse verseOfDay(Context ctx, String faith) {
-        long days = ChronoUnit.DAYS.between(LocalDate.of(2026, 1, 1), LocalDate.now());
+        return verseForDate(ctx, faith, LocalDate.now());
+    }
+
+    /** The verse that was (or will be) the verse of the day on a given date.
+     *  Powers the History screen — same deterministic rotation as verseOfDay. */
+    public static Verse verseForDate(Context ctx, String faith, LocalDate date) {
+        long days = ChronoUnit.DAYS.between(LocalDate.of(2026, 1, 1), date);
         if (faith == null || "All".equals(faith)) {
             String f = FAITH_ORDER[(int) Math.floorMod(days, FAITH_ORDER.length)];
             List<Verse> list = forFaith(ctx, f);

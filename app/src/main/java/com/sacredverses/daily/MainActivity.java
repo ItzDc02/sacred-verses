@@ -6,14 +6,19 @@ import android.app.AlertDialog;
 import android.app.TimePickerDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -56,21 +61,36 @@ public class MainActivity extends Activity {
     private VerseAdapter adapter;
 
     // screens
-    private ScrollView homeScroll;
-    private LinearLayout browseContainer, settingsScrollInner;
+    private ScrollView homeScroll, historyScroll;
+    private LinearLayout browseContainer, settingsScrollInner, historyList;
     private ScrollView settingsScroll;
-    private Button navHome, navBrowse, navSettings;
+    private Button navHome, navBrowse, navHistory, navSettings;
 
-    private TextView dateLine, todayFaith, todayText, todayRef, emptyView;
-    private Button todayFav, todayShare, privacyButton, aboutButton, supportButton;
+    private TextView dateLine, streakLine, todayFaith, todayText, todayRef, emptyView;
+    private Button todayFav, todayShare, todayImageShare, privacyButton, aboutButton,
+            supportButton, inviteButton;
     private Switch notifSwitch, wallpaperSwitch;
-    private LinearLayout filterRow, timePresetsRow, faithRow, sponsorSlot;
+    private LinearLayout filterRow, timePresetsRow, faithRow, textSizeRow, sponsorSlot;
     private ListView verseList;
 
     private static final String[] PRESET_LABELS =
             {"Morning", "Midday", "Evening", "Night"};
     private static final int[][] PRESET_TIMES =
             {{7, 0}, {13, 0}, {19, 0}, {21, 0}};
+
+    private static final String[] TEXT_SIZE_LABELS = {"Small", "Medium", "Large"};
+    private static final float[] TEXT_SIZE_SCALES = {0.85f, 1.0f, 1.2f};
+
+    /** Accessibility: apply the user's text-size preference to the whole activity. */
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        SharedPreferences p =
+                newBase.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        float scale = p.getFloat("font_scale", 1.0f);
+        Configuration cfg = new Configuration(newBase.getResources().getConfiguration());
+        if (Math.abs(scale - 1.0f) > 0.01f) cfg.fontScale = scale;
+        super.attachBaseContext(newBase.createConfigurationContext(cfg));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,21 +106,27 @@ public class MainActivity extends Activity {
 
         homeScroll = findViewById(R.id.homeScroll);
         browseContainer = findViewById(R.id.browseContainer);
+        historyScroll = findViewById(R.id.historyScroll);
+        historyList = findViewById(R.id.historyList);
         settingsScroll = findViewById(R.id.settingsScroll);
         navHome = findViewById(R.id.navHome);
         navBrowse = findViewById(R.id.navBrowse);
+        navHistory = findViewById(R.id.navHistory);
         navSettings = findViewById(R.id.navSettings);
 
         dateLine = findViewById(R.id.dateLine);
+        streakLine = findViewById(R.id.streakLine);
         todayFaith = findViewById(R.id.todayFaith);
         todayText = findViewById(R.id.todayText);
         todayRef = findViewById(R.id.todayRef);
         todayFav = findViewById(R.id.todayFav);
         todayShare = findViewById(R.id.todayShare);
+        todayImageShare = findViewById(R.id.todayImageShare);
         sponsorSlot = findViewById(R.id.sponsorSlot);
         filterRow = findViewById(R.id.filterRow);
         faithRow = findViewById(R.id.faithRow);
         timePresetsRow = findViewById(R.id.timePresetsRow);
+        textSizeRow = findViewById(R.id.textSizeRow);
         verseList = findViewById(R.id.verseList);
         emptyView = findViewById(R.id.emptyView);
         notifSwitch = findViewById(R.id.notifSwitch);
@@ -108,6 +134,7 @@ public class MainActivity extends Activity {
         privacyButton = findViewById(R.id.privacyButton);
         aboutButton = findViewById(R.id.aboutButton);
         supportButton = findViewById(R.id.supportButton);
+        inviteButton = findViewById(R.id.inviteButton);
 
         dateLine.setText(
                 new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(new Date()));
@@ -121,6 +148,8 @@ public class MainActivity extends Activity {
         verseList.setAdapter(adapter);
         setupSettings();
         setupFooter();
+        updateStreak();
+        VerseWidgetProvider.updateWidgets(this);
         requestNotificationPermission();
         maybeShowFirstLaunch();
         showScreen(0);
@@ -133,7 +162,25 @@ public class MainActivity extends Activity {
         // and re-apply the wallpaper if it wasn't set today (self-heals after
         // manual date changes, alarm hiccups, or reinstalls)
         setupVerseOfDay();
+        updateStreak();
+        VerseWidgetProvider.updateWidgets(this);
         maybeRefreshWallpaper();
+    }
+
+    /** Daily reflection streak: consecutive days the app was opened. */
+    private void updateStreak() {
+        String today = LocalDate.now().toString();
+        String last = prefs.getString("streak_last", "");
+        int streak = prefs.getInt("streak_count", 0);
+        if (!today.equals(last)) {
+            if (last.equals(LocalDate.now().minusDays(1).toString())) streak++;
+            else streak = 1;
+            prefs.edit().putInt("streak_count", streak)
+                    .putString("streak_last", today).apply();
+        }
+        streakLine.setText(streak <= 1
+                ? "\uD83D\uDD25 Day 1 — come back tomorrow to build your streak"
+                : "\uD83D\uDD25 " + streak + "-day streak — keep it going!");
     }
 
     private void maybeRefreshWallpaper() {
@@ -150,16 +197,20 @@ public class MainActivity extends Activity {
     private void setupNav() {
         navHome.setOnClickListener(v -> showScreen(0));
         navBrowse.setOnClickListener(v -> showScreen(1));
-        navSettings.setOnClickListener(v -> showScreen(2));
+        navHistory.setOnClickListener(v -> showScreen(2));
+        navSettings.setOnClickListener(v -> showScreen(3));
     }
 
     private void showScreen(int which) {
         homeScroll.setVisibility(which == 0 ? View.VISIBLE : View.GONE);
         browseContainer.setVisibility(which == 1 ? View.VISIBLE : View.GONE);
-        settingsScroll.setVisibility(which == 2 ? View.VISIBLE : View.GONE);
+        historyScroll.setVisibility(which == 2 ? View.VISIBLE : View.GONE);
+        settingsScroll.setVisibility(which == 3 ? View.VISIBLE : View.GONE);
         paintNav(navHome, which == 0);
         paintNav(navBrowse, which == 1);
-        paintNav(navSettings, which == 2);
+        paintNav(navHistory, which == 2);
+        paintNav(navSettings, which == 3);
+        if (which == 2) setupHistory();
     }
 
     private void paintNav(Button b, boolean sel) {
@@ -187,6 +238,10 @@ public class MainActivity extends Activity {
             adapter.refresh();
         });
         todayShare.setOnClickListener(v -> shareVerse(verse));
+        // image sharing needs scoped storage (Android 10+) — no permission dance
+        todayImageShare.setVisibility(
+                Build.VERSION.SDK_INT >= 29 ? View.VISIBLE : View.GONE);
+        todayImageShare.setOnClickListener(v -> shareVerseAsImage(verse));
     }
 
     private void refreshFavButton(String id) {
@@ -206,6 +261,45 @@ public class MainActivity extends Activity {
         send.setType("text/plain");
         send.putExtra(Intent.EXTRA_TEXT, text);
         startActivity(Intent.createChooser(send, "Share this verse"));
+    }
+
+    /** Renders the verse as a square "good morning" image and shares it via
+     *  the system sheet (WhatsApp, Telegram, Instagram…). Saved to the shared
+     *  media store so it needs no storage permission on Android 10+. */
+    private void shareVerseAsImage(Verse verse) {
+        if (Build.VERSION.SDK_INT < 29) {
+            Toast.makeText(this, "Image sharing needs Android 10 or newer",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Bitmap bmp = ShareImageHelper.render(this, verse);
+        if (bmp == null) {
+            Toast.makeText(this, "Could not create image", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            ContentValues cv = new ContentValues();
+            cv.put(MediaStore.Images.Media.DISPLAY_NAME,
+                    "sacred-verse-" + System.currentTimeMillis() + ".png");
+            cv.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+            cv.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/SacredVerses");
+            ContentResolver cr = getContentResolver();
+            Uri uri = cr.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv);
+            if (uri == null) throw new Exception("media insert failed");
+            try (java.io.OutputStream os = cr.openOutputStream(uri)) {
+                if (os == null) throw new Exception("open failed");
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, os);
+            }
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("image/png");
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(send, "Share verse image"));
+        } catch (Exception e) {
+            Toast.makeText(this, "Could not share image", Toast.LENGTH_SHORT).show();
+        } finally {
+            bmp.recycle();
+        }
     }
 
     // ---------- sponsored card (home screen) ----------
@@ -390,6 +484,7 @@ public class MainActivity extends Activity {
                 h.source = convertView.findViewById(R.id.verseSource);
                 h.fav = convertView.findViewById(R.id.favButton);
                 h.share = convertView.findViewById(R.id.shareButton);
+                h.image = convertView.findViewById(R.id.imageButton);
                 convertView.setTag(h);
             } else {
                 h = (ViewHolder) convertView.getTag();
@@ -409,14 +504,145 @@ public class MainActivity extends Activity {
                 refreshFavButton(VerseRepository.verseOfDay(MainActivity.this, myFaith).id);
             });
             h.share.setOnClickListener(v -> shareVerse(verse));
+            h.image.setVisibility(
+                    Build.VERSION.SDK_INT >= 29 ? View.VISIBLE : View.GONE);
+            h.image.setOnClickListener(v -> shareVerseAsImage(verse));
             return convertView;
         }
 
         class ViewHolder {
             View strip;
             TextView text, ref, source;
-            Button fav, share;
+            Button fav, share, image;
         }
+    }
+
+    // ---------- verse history (last 30 days) ----------
+
+    /** Rebuilds the history list. Uses the same deterministic rotation as the
+     *  daily verse, so each row shows what that day's verse was (or is). */
+    private void setupHistory() {
+        historyList.removeAllViews();
+        LocalDate today = LocalDate.now();
+        for (int i = 0; i < 30; i++) {
+            LocalDate date = today.minusDays(i);
+            final Verse verse = VerseRepository.verseForDate(this, myFaith, date);
+            // NOTE: java.sql.Date.valueOf(LocalDate) does NOT exist on Android
+            // (NoSuchMethodError) — format the LocalDate directly instead.
+            final String label = i == 0 ? "Today"
+                    : i == 1 ? "Yesterday"
+                    : date.getDayOfWeek().getDisplayName(
+                            java.time.format.TextStyle.FULL, Locale.getDefault())
+                    + ", " + date.getDayOfMonth() + " "
+                    + date.getMonth().getDisplayName(
+                            java.time.format.TextStyle.SHORT, Locale.getDefault());
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setBackgroundResource(R.drawable.card_bg);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(dp(16), dp(6), dp(16), dp(6));
+            row.setLayoutParams(lp);
+            row.setPadding(dp(16), dp(12), dp(16), dp(12));
+
+            TextView dateView = new TextView(this);
+            dateView.setText(label.toUpperCase(Locale.getDefault()));
+            dateView.setTextSize(11);
+            dateView.setTypeface(dateView.getTypeface(),
+                    android.graphics.Typeface.BOLD);
+            dateView.setTextColor(getColor(R.color.muted));
+            row.addView(dateView);
+
+            TextView snippet = new TextView(this);
+            String t = verse.text;
+            snippet.setText("\u201C" + (t.length() > 110
+                    ? t.substring(0, 110) + "…" : t) + "\u201D");
+            snippet.setTextSize(15);
+            snippet.setTextColor(getColor(R.color.ink));
+            snippet.setPadding(0, dp(6), 0, 0);
+            row.addView(snippet);
+
+            TextView refView = new TextView(this);
+            refView.setText(verse.faith + " · " + verse.ref);
+            refView.setTextSize(12);
+            refView.setTypeface(refView.getTypeface(),
+                    android.graphics.Typeface.BOLD);
+            refView.setTextColor(FaithColors.get(verse.faith));
+            refView.setPadding(0, dp(4), 0, 0);
+            row.addView(refView);
+
+            row.setOnClickListener(v -> showHistoryVerse(verse, label));
+            historyList.addView(row);
+        }
+    }
+
+    /** Full verse from history, with save / share / image actions. */
+    private void showHistoryVerse(final Verse verse, String dateLabel) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(20);
+        layout.setPadding(pad, pad, pad, 0);
+
+        TextView faithView = new TextView(this);
+        faithView.setText(verse.faith);
+        faithView.setTextSize(12);
+        faithView.setTypeface(faithView.getTypeface(),
+                android.graphics.Typeface.BOLD);
+        faithView.setTextColor(getColor(android.R.color.white));
+        GradientDrawable pill = new GradientDrawable();
+        pill.setColor(FaithColors.get(verse.faith));
+        pill.setCornerRadius(dp(14));
+        faithView.setBackground(pill);
+        faithView.setPadding(dp(12), dp(6), dp(12), dp(6));
+        layout.addView(faithView);
+
+        TextView textView = new TextView(this);
+        textView.setText("\u201C" + verse.text + "\u201D");
+        textView.setTextSize(18);
+        textView.setTextColor(getColor(R.color.ink));
+        textView.setPadding(0, dp(12), 0, 0);
+        layout.addView(textView);
+
+        TextView refView = new TextView(this);
+        refView.setText("— " + verse.ref + " · " + verse.source);
+        refView.setTextSize(13);
+        refView.setTextColor(getColor(R.color.muted));
+        refView.setPadding(0, dp(12), 0, 0);
+        layout.addView(refView);
+
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setPadding(0, dp(8), 0, 0);
+        Button shareText = new Button(this, null,
+                android.R.attr.borderlessButtonStyle);
+        shareText.setText("Share text");
+        shareText.setAllCaps(false);
+        shareText.setTextColor(getColor(R.color.primary));
+        shareText.setOnClickListener(v -> shareVerse(verse));
+        btnRow.addView(shareText);
+        if (Build.VERSION.SDK_INT >= 29) {
+            Button shareImg = new Button(this, null,
+                    android.R.attr.borderlessButtonStyle);
+            shareImg.setText("🖼 Share image");
+            shareImg.setAllCaps(false);
+            shareImg.setTextColor(getColor(R.color.primary));
+            shareImg.setOnClickListener(v -> shareVerseAsImage(verse));
+            btnRow.addView(shareImg);
+        }
+        layout.addView(btnRow);
+
+        new AlertDialog.Builder(this)
+                .setTitle(dateLabel)
+                .setView(layout)
+                .setPositiveButton(favs.contains(verse.id) ? "★ Saved" : "☆ Save",
+                        (d, w) -> {
+                            toggleFav(verse.id);
+                            adapter.refresh();
+                        })
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     // ---------- settings ----------
@@ -443,6 +669,42 @@ public class MainActivity extends Activity {
 
         setupTimePresets();
         setupSupportButton();
+        setupTextSizeRow();
+
+        inviteButton.setOnClickListener(v -> {
+            String text = "I start my mornings with Sacred Verses — "
+                    + "one verse from the world's scriptures, every day.\n\n"
+                    + "Free, no ads, no account needed:\n"
+                    + "https://github.com/ItzDc02/sacred-verses/releases";
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("text/plain");
+            send.putExtra(Intent.EXTRA_TEXT, text);
+            startActivity(Intent.createChooser(send, "Invite friends"));
+        });
+    }
+
+    /** Text-size accessibility: Small / Medium / Large, applied app-wide via
+     *  fontScale. Changing it recreates the activity so everything re-renders. */
+    private void setupTextSizeRow() {
+        textSizeRow.removeAllViews();
+        float cur = prefs.getFloat("font_scale", 1.0f);
+        for (int i = 0; i < TEXT_SIZE_LABELS.length; i++) {
+            final float scale = TEXT_SIZE_SCALES[i];
+            Button b = makeChip(TEXT_SIZE_LABELS[i]);
+            boolean sel = Math.abs(cur - scale) < 0.01f;
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(sel ? 0xFF4A3F8C : 0xFFE7E3F7);
+            bg.setCornerRadius(dp(14));
+            b.setBackground(bg);
+            b.setTextColor(getColor(sel ? android.R.color.white : R.color.primary));
+            int h = dp(6), w = dp(12);
+            b.setPadding(w, h, w, h);
+            b.setOnClickListener(v -> {
+                prefs.edit().putFloat("font_scale", scale).apply();
+                recreate();
+            });
+            textSizeRow.addView(b);
+        }
     }
 
     /** "Support" button: opens the user's UPI app for a voluntary contribution.
@@ -640,7 +902,7 @@ public class MainActivity extends Activity {
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
                                 + "Max Müller's Dhammapada (1881), the JPS 1917 Tanakh, and Macauliffe's "
-                                + "The Sikh Religion (1909).\n\nVersion 1.0 · Made with care.")
+                                + "The Sikh Religion (1909).\n\nVersion 2.0 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }

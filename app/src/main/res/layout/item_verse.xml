@@ -72,6 +72,15 @@
                 android:layout_height="wrap_content"
                 android:text="Share"
                 android:textColor="@color/primary" />
+
+            <Button
+                android:id="@+id/imageButton"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🖼"
+                android:textSize="16sp"
+                android:textColor="@color/primary" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
