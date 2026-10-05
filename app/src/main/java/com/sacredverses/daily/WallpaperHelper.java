@@ -69,7 +69,7 @@ public class WallpaperHelper {
             tp.setColor(0xFFFFFFFF);
             tp.setTextSize(w * 0.052f);
             tp.setTypeface(Typeface.create("serif", Typeface.NORMAL));
-            String text = "\u201C" + verse.text + "\u201D";
+            String text = "\u201C" + VerseRepository.displayText(ctx, verse) + "\u201D";
             StaticLayout layout = StaticLayout.Builder
                     .obtain(text, 0, text.length(), tp, (int) (w * 0.86))
                     .setAlignment(Layout.Alignment.ALIGN_CENTER)

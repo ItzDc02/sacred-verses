@@ -27,15 +27,16 @@ public class NotificationHelper {
 
     public static void showVerse(Context ctx, Verse verse) {
         ensureChannel(ctx);
+        String text = VerseRepository.displayText(ctx, verse);
         Intent intent = new Intent(ctx, MainActivity.class);
         PendingIntent pi = PendingIntent.getActivity(ctx, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(verse.faith + " · " + verse.ref)
-                .setContentText(verse.text)
+                .setContentText(text)
                 .setStyle(new Notification.BigTextStyle()
-                        .bigText("\u201C" + verse.text + "\u201D\n— " + verse.ref))
+                        .bigText("\u201C" + text + "\u201D\n— " + verse.ref))
                 .setContentIntent(pi)
                 .setAutoCancel(true)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)

@@ -33,7 +33,7 @@ public class VerseWidgetProvider extends AppWidgetProvider {
                 RemoteViews rv = new RemoteViews(ctx.getPackageName(),
                         R.layout.verse_widget);
                 rv.setTextViewText(R.id.widgetText,
-                        "\u201C" + verse.text + "\u201D");
+                        "\u201C" + VerseRepository.displayText(ctx, verse) + "\u201D");
                 rv.setTextViewText(R.id.widgetRef,
                         verse.faith + " \u00B7 " + verse.ref);
                 Intent open = new Intent(ctx, MainActivity.class);

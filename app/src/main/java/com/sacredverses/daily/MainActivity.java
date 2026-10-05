@@ -65,9 +65,10 @@ public class MainActivity extends Activity {
     private ScrollView settingsScroll;
     private Button navHome, navBrowse, navHistory, navSettings;
 
-    private LinearLayout headerBar, festivalSlot;
+    private LinearLayout headerBar, festivalSlot, todayCard;
     private TextView dateLine, streakLine, todayLabel, todayFaith, todayText,
-            todayRef, emptyView;
+            todayRef, todaySource, emptyView;
+    private View todayDivider;
     private Button todayFav, todayShare, todayImageShare, todayListen,
             privacyButton, aboutButton, supportButton, inviteButton;
     private Switch notifSwitch, wallpaperSwitch, darkSwitch;
@@ -143,6 +144,9 @@ public class MainActivity extends Activity {
         dateLine = findViewById(R.id.dateLine);
         streakLine = findViewById(R.id.streakLine);
         todayLabel = findViewById(R.id.todayLabel);
+        todayCard = findViewById(R.id.todayCard);
+        todayDivider = findViewById(R.id.todayDivider);
+        todaySource = findViewById(R.id.todaySource);
         todayFaith = findViewById(R.id.todayFaith);
         todayText = findViewById(R.id.todayText);
         todayRef = findViewById(R.id.todayRef);
@@ -227,25 +231,29 @@ public class MainActivity extends Activity {
 
     // ---------- daily theme + festival ----------
 
-    /** Paints the header with today's palette — or the festival's colors on
-     *  festival days — and tints the verse-card label to match. */
+    /** Paints the header with today's palette (or the festival's colors on
+     *  festival days). The Verse-of-the-Day card always wears the brand
+     *  gradient — the same visual language as the share image. */
     private void applyTheme() {
-        int start, end, accent;
+        int start, end;
         FestivalHelper.Festival f = FestivalHelper.today(this);
         if (f != null) {
             start = f.colorStart;
             end = f.colorEnd;
-            accent = 0xFFFFD98A;
         } else {
             ThemePalettes.Palette p = ThemePalettes.today();
             start = p.start;
             end = p.end;
-            accent = p.accent;
         }
         GradientDrawable gd = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR, new int[]{start, end});
         headerBar.setBackground(gd);
-        todayLabel.setTextColor(accent);
+
+        GradientDrawable card = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xFF2A2356, 0xFF6B4E9E});
+        card.setCornerRadius(dp(16));
+        todayCard.setBackground(card);
     }
 
     /** Festival banner card on the home screen (greeting + explainer). */
@@ -307,7 +315,7 @@ public class MainActivity extends Activity {
         bg.setCornerRadius(dp(14));
         b.setBackground(bg);
         b.setTextColor(getColor(sel ? android.R.color.white : R.color.primary));
-        int h = dp(6), w = dp(12);
+        int h = dp(10), w = dp(14);
         b.setPadding(w, h, w, h);
     }
 
@@ -368,13 +376,17 @@ public class MainActivity extends Activity {
 
     private void setupVerseOfDay() {
         final Verse verse = VerseRepository.verseToday(this);
+        int accent = FaithColors.get(verse.faith);
         todayFaith.setText(verse.faith);
         GradientDrawable pill = new GradientDrawable();
-        pill.setColor(FaithColors.get(verse.faith));
+        pill.setColor(accent);
         pill.setCornerRadius(dp(14));
         todayFaith.setBackground(pill);
-        todayText.setText("\u201C" + verse.text + "\u201D");
-        todayRef.setText("— " + verse.ref + " · " + verse.source);
+        todayText.setText("\u201C" + VerseRepository.displayText(this, verse) + "\u201D");
+        todayDivider.setBackgroundColor(accent);
+        todayRef.setText(verse.faith + " · " + verse.ref);
+        todayRef.setTextColor(accent);
+        todaySource.setText(verse.source);
         refreshFavButton(verse.id);
         todayFav.setOnClickListener(v -> {
             toggleFav(verse.id);
@@ -400,7 +412,7 @@ public class MainActivity extends Activity {
     }
 
     private void shareVerse(Verse verse) {
-        String text = "\u201C" + verse.text + "\u201D\n— " + verse.ref
+        String text = "\u201C" + VerseRepository.displayText(this, verse) + "\u201D\n— " + verse.ref
                 + " (" + verse.faith + ")\n\nShared via Sacred Verses app";
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
@@ -417,7 +429,8 @@ public class MainActivity extends Activity {
                     Toast.LENGTH_SHORT).show();
             return;
         }
-        Bitmap bmp = ShareImageHelper.render(this, verse);
+        Bitmap bmp = ShareImageHelper.render(this, verse,
+                VerseRepository.verseLang(this));
         if (bmp == null) {
             Toast.makeText(this, "Could not create image", Toast.LENGTH_SHORT).show();
             return;
@@ -567,6 +580,7 @@ public class MainActivity extends Activity {
         Button b = new Button(this, null, android.R.attr.borderlessButtonStyle);
         b.setText(text);
         b.setAllCaps(false);
+        b.setMinHeight(dp(44)); // comfortable touch target
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -637,7 +651,7 @@ public class MainActivity extends Activity {
             strip.setColor(FaithColors.get(verse.faith));
             strip.setCornerRadii(new float[]{dp(16), dp(16), dp(16), dp(16), 0, 0, 0, 0});
             h.strip.setBackground(strip);
-            h.text.setText("\u201C" + verse.text + "\u201D");
+            h.text.setText("\u201C" + VerseRepository.displayText(MainActivity.this, verse) + "\u201D");
             h.ref.setText(verse.faith + " · " + verse.ref);
             h.source.setText(verse.source);
             h.fav.setText(favs.contains(verse.id) ? "★" : "☆");
@@ -708,7 +722,7 @@ public class MainActivity extends Activity {
             row.addView(dateView);
 
             TextView snippet = new TextView(this);
-            String t = verse.text;
+            String t = VerseRepository.displayText(this, verse);
             snippet.setText("\u201C" + (t.length() > 110
                     ? t.substring(0, 110) + "…" : t) + "\u201D");
             snippet.setTextSize(15);
@@ -721,7 +735,7 @@ public class MainActivity extends Activity {
             refView.setTextSize(12);
             refView.setTypeface(refView.getTypeface(),
                     android.graphics.Typeface.BOLD);
-            refView.setTextColor(FaithColors.get(verse.faith));
+            refView.setTextColor(FaithColors.forText(isDark(), verse.faith));
             refView.setPadding(0, dp(4), 0, 0);
             row.addView(refView);
 
@@ -758,7 +772,7 @@ public class MainActivity extends Activity {
         layout.addView(faithView);
 
         TextView textView = new TextView(this);
-        textView.setText("\u201C" + verse.text + "\u201D");
+        textView.setText("\u201C" + VerseRepository.displayText(this, verse) + "\u201D");
         textView.setTextSize(18);
         textView.setTextColor(getColor(R.color.ink));
         textView.setPadding(0, dp(12), 0, 0);
@@ -874,21 +888,28 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Verse language: English (304 verses, five faiths) or हिन्दी (starter
-     *  collection of Kabir, Tulsidas, Rahim and Sanskrit shlokas). */
+    /** Verse language: one chip per language that has bundled content.
+     *  Switching resets the faith preference when the chosen faith has no
+     *  verses in the new language, then recreates so everything re-renders. */
     private void setupLanguageRow() {
         languageRow.removeAllViews();
-        boolean hindi = VerseRepository.isHindi(this);
-        String[] labels = {"English", "हिन्दी"};
-        String[] values = {"en", "hi"};
-        for (int i = 0; i < labels.length; i++) {
-            final String val = values[i];
-            Button b = makeChip(labels[i]);
-            boolean sel = hindi ? "hi".equals(val) : "en".equals(val);
-            paintChip(b, sel);
+        String cur = VerseRepository.verseLang(this);
+        for (String code : VerseRepository.LANG_CODES) {
+            final String val = code;
+            Button b = makeChip(VerseRepository.langDisplayName(code));
+            paintChip(b, cur.equals(val));
             b.setOnClickListener(v -> {
                 prefs.edit().putString("verse_lang", val).apply();
                 currentFilter = "All";
+                if (!VerseRepository.faithHasLang(MainActivity.this, val, myFaith)) {
+                    myFaith = "All";
+                    prefs.edit().putString("pref_faith", "All").apply();
+                    Toast.makeText(MainActivity.this,
+                            "Faith filter reset — no "
+                                    + VerseRepository.langDisplayName(val)
+                                    + " verses for that faith yet",
+                            Toast.LENGTH_SHORT).show();
+                }
                 recreate();
             });
             languageRow.addView(b);
@@ -1084,9 +1105,9 @@ public class MainActivity extends Activity {
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
                                 + "Max Müller's Dhammapada (1881), and Macauliffe's "
-                                + "The Sikh Religion (1909) — plus a Hindi starter collection of "
-                                + "Kabir, Tulsidas, Rahim and Sanskrit shlokas with Hindi meanings.\n\n"
-                                + "Version 3.0 · Made with care.")
+                                + "The Sikh Religion (1909) — plus verses in Hindi, Sanskrit, "
+                                + "Arabic, Punjabi and Pali.\n\n"
+                                + "Version 4.0 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }

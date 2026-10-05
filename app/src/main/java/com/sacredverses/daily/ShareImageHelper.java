@@ -19,8 +19,10 @@ import android.text.TextPaint;
  */
 public class ShareImageHelper {
 
-    /** @return the rendered bitmap, or null if anything went wrong. */
-    public static Bitmap render(Context ctx, Verse verse) {
+    /** @return the rendered bitmap, or null if anything went wrong.
+     *  The verse is rendered in the requested language; StaticLayout's
+     *  centered alignment handles RTL scripts (Arabic) correctly. */
+    public static Bitmap render(Context ctx, Verse verse, String lang) {
         try {
             int w = 1080;
             int h = 1080;
@@ -49,12 +51,12 @@ public class ShareImageHelper {
             brand.setTextAlign(Paint.Align.CENTER);
             c.drawText("S A C R E D   V E R S E S", cx, 150f, brand);
 
-            // verse text (serif, centered)
+            // verse text (serif, centered — StaticLayout handles RTL shaping)
             TextPaint tp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
             tp.setColor(0xFFFFFFFF);
             tp.setTextSize(56f);
             tp.setTypeface(Typeface.create("serif", Typeface.NORMAL));
-            String text = "\u201C" + verse.text + "\u201D";
+            String text = "\u201C" + verse.textFor(lang) + "\u201D";
             StaticLayout layout = StaticLayout.Builder
                     .obtain(text, 0, text.length(), tp, (int) (w * 0.84))
                     .setAlignment(Layout.Alignment.ALIGN_CENTER)

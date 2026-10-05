@@ -74,15 +74,19 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
 
+                <!-- VERSE OF THE DAY card: same visual language as the share
+                     image (brand gradient, centered serif verse, faith-color
+                     divider + reference). Background is painted at runtime. -->
                 <LinearLayout
+                    android:id="@+id/todayCard"
                     android:orientation="vertical"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
                     android:layout_marginTop="16dp"
-                    android:background="@drawable/card_bg"
-                    android:padding="20dp">
+                    android:padding="24dp"
+                    android:gravity="center_horizontal">
 
                     <TextView
                         android:id="@+id/todayLabel"
@@ -91,7 +95,7 @@
                         android:text="VERSE OF THE DAY"
                         android:textSize="11sp"
                         android:textStyle="bold"
-                        android:textColor="@color/muted"
+                        android:textColor="#B3E8E2F5"
                         android:letterSpacing="0.15" />
 
                     <TextView
@@ -111,24 +115,42 @@
                         android:id="@+id/todayText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="16dp"
                         android:textSize="20sp"
-                        android:textColor="@color/ink"
+                        android:fontFamily="serif"
+                        android:textColor="#FFFFFF"
+                        android:gravity="center"
                         android:lineSpacingExtra="6dp" />
+
+                    <View
+                        android:id="@+id/todayDivider"
+                        android:layout_width="64dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="16dp" />
 
                     <TextView
                         android:id="@+id/todayRef"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:textSize="13sp"
-                        android:textColor="@color/muted" />
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/todaySource"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="12sp"
+                        android:textColor="#BBE8E2F5"
+                        android:gravity="center" />
 
                     <LinearLayout
                         android:orientation="horizontal"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp">
+                        android:layout_marginTop="12dp"
+                        android:gravity="center">
 
                         <Button
                             android:id="@+id/todayFav"
@@ -136,7 +158,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="☆ Save"
-                            android:textColor="@color/primary" />
+                            android:textColor="#FFFFFF" />
 
                         <Button
                             android:id="@+id/todayShare"
@@ -144,7 +166,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Share"
-                            android:textColor="@color/primary" />
+                            android:textColor="#FFFFFF" />
 
                         <Button
                             android:id="@+id/todayImageShare"
@@ -152,7 +174,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="🖼 Image"
-                            android:textColor="@color/primary" />
+                            android:textColor="#FFFFFF" />
 
                         <Button
                             android:id="@+id/todayListen"
@@ -160,7 +182,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="🔊 Listen"
-                            android:textColor="@color/primary" />
+                            android:textColor="#FFFFFF" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -392,12 +414,18 @@
                         android:textColor="@color/muted"
                         android:letterSpacing="0.12" />
 
-                    <LinearLayout
-                        android:id="@+id/languageRow"
-                        android:orientation="horizontal"
+                    <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:scrollbars="none">
+
+                        <LinearLayout
+                            android:id="@+id/languageRow"
+                            android:orientation="horizontal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </HorizontalScrollView>
 
                     <Button
                         android:id="@+id/inviteButton"

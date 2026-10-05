@@ -34,7 +34,7 @@
             android:layout_height="44dp"
             android:text="✕"
             android:textSize="22sp"
-            android:textColor="#6B5F8A" />
+            android:textColor="@color/muted" />
     </LinearLayout>
 
     <TextView
