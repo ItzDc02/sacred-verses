@@ -792,6 +792,10 @@ public class MainActivity extends Activity {
                 android.R.attr.borderlessButtonStyle);
         shareText.setText("Share text");
         shareText.setAllCaps(false);
+        shareText.setTextSize(13);
+        shareText.setSingleLine(true);
+        shareText.setMinWidth(0);
+        shareText.setPadding(dp(10), 0, dp(10), 0);
         shareText.setTextColor(getColor(R.color.primary));
         shareText.setOnClickListener(v -> shareVerse(verse));
         btnRow.addView(shareText);
@@ -800,6 +804,10 @@ public class MainActivity extends Activity {
                     android.R.attr.borderlessButtonStyle);
             shareImg.setText("🖼 Share image");
             shareImg.setAllCaps(false);
+            shareImg.setTextSize(13);
+            shareImg.setSingleLine(true);
+            shareImg.setMinWidth(0);
+            shareImg.setPadding(dp(10), 0, dp(10), 0);
             shareImg.setTextColor(getColor(R.color.primary));
             shareImg.setOnClickListener(v -> shareVerseAsImage(verse));
             btnRow.addView(shareImg);
@@ -808,6 +816,10 @@ public class MainActivity extends Activity {
                 android.R.attr.borderlessButtonStyle);
         listen.setText("🔊 Listen");
         listen.setAllCaps(false);
+        listen.setTextSize(13);
+        listen.setSingleLine(true);
+        listen.setMinWidth(0);
+        listen.setPadding(dp(10), 0, dp(10), 0);
         listen.setTextColor(getColor(R.color.primary));
         listen.setOnClickListener(v -> TtsSpeaker.toggle(MainActivity.this, verse));
         btnRow.addView(listen);

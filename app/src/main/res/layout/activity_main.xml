@@ -147,7 +147,7 @@
 
                     <LinearLayout
                         android:orientation="horizontal"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center">
@@ -155,34 +155,58 @@
                         <Button
                             android:id="@+id/todayFav"
                             style="?android:attr/borderlessButtonStyle"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="☆ Save"
-                            android:textColor="#FFFFFF" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:minWidth="0dp"
+                            android:paddingLeft="8dp"
+                            android:paddingRight="8dp"
+                            android:singleLine="true" />
 
                         <Button
                             android:id="@+id/todayShare"
                             style="?android:attr/borderlessButtonStyle"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="Share"
-                            android:textColor="#FFFFFF" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:minWidth="0dp"
+                            android:paddingLeft="8dp"
+                            android:paddingRight="8dp"
+                            android:singleLine="true" />
 
                         <Button
                             android:id="@+id/todayImageShare"
                             style="?android:attr/borderlessButtonStyle"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="🖼 Image"
-                            android:textColor="#FFFFFF" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:minWidth="0dp"
+                            android:paddingLeft="8dp"
+                            android:paddingRight="8dp"
+                            android:singleLine="true" />
 
                         <Button
                             android:id="@+id/todayListen"
                             style="?android:attr/borderlessButtonStyle"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:text="🔊 Listen"
-                            android:textColor="#FFFFFF" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:minWidth="0dp"
+                            android:paddingLeft="8dp"
+                            android:paddingRight="8dp"
+                            android:singleLine="true" />
                     </LinearLayout>
                 </LinearLayout>
 
