@@ -49,12 +49,11 @@ public class MainActivity extends Activity {
 
     private static final String[] FAITHS = {
             "All", "Hinduism", "Christianity", "Islam",
-            "Buddhism", "Judaism", "Sikhism", "Saved"
+            "Buddhism", "Sikhism", "Saved"
     };
 
     private SharedPreferences prefs;
     private Set<String> favs;
-    private List<Verse> allVerses;
     private String currentFilter = "All";
     private String myFaith = "All";
     private boolean suppressWallpaperToggle = false;
@@ -66,11 +65,14 @@ public class MainActivity extends Activity {
     private ScrollView settingsScroll;
     private Button navHome, navBrowse, navHistory, navSettings;
 
-    private TextView dateLine, streakLine, todayFaith, todayText, todayRef, emptyView;
-    private Button todayFav, todayShare, todayImageShare, privacyButton, aboutButton,
-            supportButton, inviteButton;
-    private Switch notifSwitch, wallpaperSwitch;
-    private LinearLayout filterRow, timePresetsRow, faithRow, textSizeRow, sponsorSlot;
+    private LinearLayout headerBar, festivalSlot;
+    private TextView dateLine, streakLine, todayLabel, todayFaith, todayText,
+            todayRef, emptyView;
+    private Button todayFav, todayShare, todayImageShare, todayListen,
+            privacyButton, aboutButton, supportButton, inviteButton;
+    private Switch notifSwitch, wallpaperSwitch, darkSwitch;
+    private LinearLayout filterRow, timePresetsRow, faithRow, textSizeRow,
+            languageRow, sponsorSlot;
     private ListView verseList;
 
     private static final String[] PRESET_LABELS =
@@ -81,7 +83,9 @@ public class MainActivity extends Activity {
     private static final String[] TEXT_SIZE_LABELS = {"Small", "Medium", "Large"};
     private static final float[] TEXT_SIZE_SCALES = {0.85f, 1.0f, 1.2f};
 
-    /** Accessibility: apply the user's text-size preference to the whole activity. */
+    /** Accessibility: apply the user's text-size preference to the whole
+     *  activity, and force the UI mode (dark/light) from the preference so
+     *  values-night resources resolve correctly. */
     @Override
     protected void attachBaseContext(Context newBase) {
         SharedPreferences p =
@@ -89,21 +93,43 @@ public class MainActivity extends Activity {
         float scale = p.getFloat("font_scale", 1.0f);
         Configuration cfg = new Configuration(newBase.getResources().getConfiguration());
         if (Math.abs(scale - 1.0f) > 0.01f) cfg.fontScale = scale;
+        int night = p.getBoolean("dark_mode", false)
+                ? Configuration.UI_MODE_NIGHT_YES
+                : Configuration.UI_MODE_NIGHT_NO;
+        cfg.uiMode = (cfg.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | night;
         super.attachBaseContext(newBase.createConfigurationContext(cfg));
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        if (prefs.getBoolean("dark_mode", false)) {
+            setTheme(R.style.Theme_SacredVerses_Dark);
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        prefs = getSharedPreferences("settings", MODE_PRIVATE);
         favs = new HashSet<>(prefs.getStringSet("favorites", new HashSet<String>()));
         myFaith = prefs.getString("pref_faith", "All");
-        allVerses = VerseRepository.load(this);
+        // a saved faith that no longer exists (removed in a past update)
+        // falls back to All instead of breaking
+        boolean knownFaith = false;
+        for (String f : FAITHS) {
+            if (f.equals(myFaith)) {
+                knownFaith = true;
+                break;
+            }
+        }
+        if (!knownFaith) {
+            myFaith = "All";
+            prefs.edit().putString("pref_faith", "All").apply();
+        }
+        recordFirstOpenAndSeen();
         NotificationHelper.ensureChannel(this);
         AlarmScheduler.scheduleNext(this);
 
+        headerBar = findViewById(R.id.headerBar);
+        festivalSlot = findViewById(R.id.festivalSlot);
         homeScroll = findViewById(R.id.homeScroll);
         browseContainer = findViewById(R.id.browseContainer);
         historyScroll = findViewById(R.id.historyScroll);
@@ -116,21 +142,25 @@ public class MainActivity extends Activity {
 
         dateLine = findViewById(R.id.dateLine);
         streakLine = findViewById(R.id.streakLine);
+        todayLabel = findViewById(R.id.todayLabel);
         todayFaith = findViewById(R.id.todayFaith);
         todayText = findViewById(R.id.todayText);
         todayRef = findViewById(R.id.todayRef);
         todayFav = findViewById(R.id.todayFav);
         todayShare = findViewById(R.id.todayShare);
         todayImageShare = findViewById(R.id.todayImageShare);
+        todayListen = findViewById(R.id.todayListen);
         sponsorSlot = findViewById(R.id.sponsorSlot);
         filterRow = findViewById(R.id.filterRow);
         faithRow = findViewById(R.id.faithRow);
         timePresetsRow = findViewById(R.id.timePresetsRow);
         textSizeRow = findViewById(R.id.textSizeRow);
+        languageRow = findViewById(R.id.languageRow);
         verseList = findViewById(R.id.verseList);
         emptyView = findViewById(R.id.emptyView);
         notifSwitch = findViewById(R.id.notifSwitch);
         wallpaperSwitch = findViewById(R.id.wallpaperSwitch);
+        darkSwitch = findViewById(R.id.darkSwitch);
         privacyButton = findViewById(R.id.privacyButton);
         aboutButton = findViewById(R.id.aboutButton);
         supportButton = findViewById(R.id.supportButton);
@@ -139,7 +169,9 @@ public class MainActivity extends Activity {
         dateLine.setText(
                 new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(new Date()));
 
+        applyTheme();
         setupNav();
+        setupFestival();
         setupVerseOfDay();
         setupSponsorCard();
         setupFilters();
@@ -161,10 +193,122 @@ public class MainActivity extends Activity {
         // the date may have changed while we were away — refresh the hero card
         // and re-apply the wallpaper if it wasn't set today (self-heals after
         // manual date changes, alarm hiccups, or reinstalls)
+        recordFirstOpenAndSeen();
+        applyTheme();
+        setupFestival();
         setupVerseOfDay();
         updateStreak();
         VerseWidgetProvider.updateWidgets(this);
         maybeRefreshWallpaper();
+    }
+
+    @Override
+    protected void onDestroy() {
+        TtsSpeaker.shutdown();
+        super.onDestroy();
+    }
+
+    // ---------- first open + seen dates (history clock) ----------
+
+    /** The history clock starts on the user's very first app open, and every
+     *  day the app is opened is recorded — history only shows days the user
+     *  actually experienced. */
+    private void recordFirstOpenAndSeen() {
+        String today = LocalDate.now().toString();
+        SharedPreferences.Editor ed = prefs.edit();
+        if (!prefs.contains("first_open_date")) {
+            ed.putString("first_open_date", today);
+        }
+        Set<String> seen =
+                new HashSet<>(prefs.getStringSet("seen_dates", new HashSet<String>()));
+        if (seen.add(today)) ed.putStringSet("seen_dates", seen);
+        ed.apply();
+    }
+
+    // ---------- daily theme + festival ----------
+
+    /** Paints the header with today's palette — or the festival's colors on
+     *  festival days — and tints the verse-card label to match. */
+    private void applyTheme() {
+        int start, end, accent;
+        FestivalHelper.Festival f = FestivalHelper.today(this);
+        if (f != null) {
+            start = f.colorStart;
+            end = f.colorEnd;
+            accent = 0xFFFFD98A;
+        } else {
+            ThemePalettes.Palette p = ThemePalettes.today();
+            start = p.start;
+            end = p.end;
+            accent = p.accent;
+        }
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR, new int[]{start, end});
+        headerBar.setBackground(gd);
+        todayLabel.setTextColor(accent);
+    }
+
+    /** Festival banner card on the home screen (greeting + explainer). */
+    private void setupFestival() {
+        festivalSlot.removeAllViews();
+        FestivalHelper.Festival f = FestivalHelper.today(this);
+        if (f == null) return;
+
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable bg = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{f.colorStart, f.colorEnd});
+        bg.setCornerRadius(dp(16));
+        card.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(dp(16), dp(16), dp(16), 0);
+        card.setLayoutParams(lp);
+        card.setPadding(dp(20), dp(16), dp(20), dp(16));
+
+        TextView greeting = new TextView(this);
+        greeting.setText(f.greeting);
+        greeting.setTextSize(17);
+        greeting.setTypeface(greeting.getTypeface(),
+                android.graphics.Typeface.BOLD);
+        greeting.setTextColor(0xFFFFFFFF);
+        card.addView(greeting);
+
+        TextView explainer = new TextView(this);
+        explainer.setText(f.explainer);
+        explainer.setTextSize(13);
+        explainer.setTextColor(0xE8FFFFFF);
+        explainer.setLineSpacing(0, 1.25f);
+        explainer.setPadding(0, dp(6), 0, 0);
+        card.addView(explainer);
+
+        festivalSlot.addView(card);
+    }
+
+    // ---------- night-aware chip colors ----------
+
+    private boolean isDark() {
+        return prefs.getBoolean("dark_mode", false);
+    }
+
+    private int chipSelBg() {
+        return isDark() ? 0xFF6E5FC4 : 0xFF4A3F8C;
+    }
+
+    private int chipBg() {
+        return isDark() ? 0xFF2E2752 : 0xFFE7E3F7;
+    }
+
+    private void paintChip(Button b, boolean sel) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(sel ? chipSelBg() : chipBg());
+        bg.setCornerRadius(dp(14));
+        b.setBackground(bg);
+        b.setTextColor(getColor(sel ? android.R.color.white : R.color.primary));
+        int h = dp(6), w = dp(12);
+        b.setPadding(w, h, w, h);
     }
 
     /** Daily reflection streak: consecutive days the app was opened. */
@@ -188,7 +332,7 @@ public class MainActivity extends Activity {
         String today = LocalDate.now().toString();
         if (today.equals(prefs.getString("wallpaper_day", ""))) return;
         boolean ok = WallpaperHelper.setVerseWallpaper(this,
-                VerseRepository.verseOfDay(this, myFaith));
+                VerseRepository.verseToday(this));
         if (ok) prefs.edit().putString("wallpaper_day", today).apply();
     }
 
@@ -223,7 +367,7 @@ public class MainActivity extends Activity {
     // ---------- verse of the day card ----------
 
     private void setupVerseOfDay() {
-        final Verse verse = VerseRepository.verseOfDay(this, myFaith);
+        final Verse verse = VerseRepository.verseToday(this);
         todayFaith.setText(verse.faith);
         GradientDrawable pill = new GradientDrawable();
         pill.setColor(FaithColors.get(verse.faith));
@@ -242,6 +386,7 @@ public class MainActivity extends Activity {
         todayImageShare.setVisibility(
                 Build.VERSION.SDK_INT >= 29 ? View.VISIBLE : View.GONE);
         todayImageShare.setOnClickListener(v -> shareVerseAsImage(verse));
+        todayListen.setOnClickListener(v -> TtsSpeaker.toggle(this, verse));
     }
 
     private void refreshFavButton(String id) {
@@ -351,9 +496,19 @@ public class MainActivity extends Activity {
 
     // ---------- faith filter buttons (browse) ----------
 
+    /** Filter options for the current language: All + faiths present in that
+     *  collection + Saved. (Hindi mode only has Hinduism.) */
+    private List<String> browseFaithOptions() {
+        List<String> opts = new ArrayList<>();
+        opts.add("All");
+        opts.addAll(VerseRepository.presentFaiths(this));
+        opts.add("Saved");
+        return opts;
+    }
+
     private void setupFilters() {
         filterRow.removeAllViews();
-        for (String faith : FAITHS) {
+        for (String faith : browseFaithOptions()) {
             Button b = makeChip(faith);
             final String f = faith;
             b.setOnClickListener(v -> {
@@ -371,14 +526,7 @@ public class MainActivity extends Activity {
         for (int i = 0; i < filterRow.getChildCount(); i++) {
             Button b = (Button) filterRow.getChildAt(i);
             String faith = (String) b.getTag();
-            boolean sel = currentFilter.equals(faith);
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(sel ? FaithColors.get(faith) : 0xFFE7E3F7);
-            bg.setCornerRadius(dp(14));
-            b.setBackground(bg);
-            b.setTextColor(getColor(sel ? android.R.color.white : R.color.primary));
-            int h = dp(6), w = dp(12);
-            b.setPadding(w, h, w, h);
+            paintChip(b, currentFilter.equals(faith));
         }
     }
 
@@ -411,14 +559,7 @@ public class MainActivity extends Activity {
         for (int i = 0; i < faithRow.getChildCount(); i++) {
             Button b = (Button) faithRow.getChildAt(i);
             String faith = (String) b.getTag();
-            boolean sel = myFaith.equals(faith);
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(sel ? FaithColors.get(faith) : 0xFFE7E3F7);
-            bg.setCornerRadius(dp(14));
-            b.setBackground(bg);
-            b.setTextColor(getColor(sel ? android.R.color.white : R.color.primary));
-            int h = dp(6), w = dp(12);
-            b.setPadding(w, h, w, h);
+            paintChip(b, myFaith.equals(faith));
         }
     }
 
@@ -446,12 +587,14 @@ public class MainActivity extends Activity {
 
         void refresh() {
             items.clear();
+            List<Verse> base = VerseRepository.browseList(MainActivity.this);
+            if (!browseFaithOptions().contains(currentFilter)) currentFilter = "All";
             if ("All".equals(currentFilter)) {
-                items.addAll(allVerses);
+                items.addAll(base);
             } else if ("Saved".equals(currentFilter)) {
-                for (Verse v : allVerses) if (favs.contains(v.id)) items.add(v);
+                for (Verse v : base) if (favs.contains(v.id)) items.add(v);
             } else {
-                for (Verse v : allVerses) if (currentFilter.equals(v.faith)) items.add(v);
+                for (Verse v : base) if (currentFilter.equals(v.faith)) items.add(v);
             }
             emptyView.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
             notifyDataSetChanged();
@@ -501,7 +644,7 @@ public class MainActivity extends Activity {
             h.fav.setOnClickListener(v -> {
                 toggleFav(verse.id);
                 notifyDataSetChanged();
-                refreshFavButton(VerseRepository.verseOfDay(MainActivity.this, myFaith).id);
+                refreshFavButton(VerseRepository.verseToday(MainActivity.this).id);
             });
             h.share.setOnClickListener(v -> shareVerse(verse));
             h.image.setVisibility(
@@ -517,20 +660,29 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---------- verse history (last 30 days) ----------
+    // ---------- verse history (days actually experienced) ----------
 
-    /** Rebuilds the history list. Uses the same deterministic rotation as the
-     *  daily verse, so each row shows what that day's verse was (or is). */
+    /** Rebuilds the history list: only dates from the user's first open
+     *  through today that are in seen_dates — each row shows that day's verse
+     *  via the same deterministic rotation as the daily verse. */
     private void setupHistory() {
         historyList.removeAllViews();
+        String first = prefs.getString("first_open_date", LocalDate.now().toString());
+        Set<String> seen = prefs.getStringSet("seen_dates", new HashSet<String>());
         LocalDate today = LocalDate.now();
-        for (int i = 0; i < 30; i++) {
-            LocalDate date = today.minusDays(i);
-            final Verse verse = VerseRepository.verseForDate(this, myFaith, date);
-            // NOTE: java.sql.Date.valueOf(LocalDate) does NOT exist on Android
-            // (NoSuchMethodError) — format the LocalDate directly instead.
-            final String label = i == 0 ? "Today"
-                    : i == 1 ? "Yesterday"
+        LocalDate firstDate;
+        try {
+            firstDate = LocalDate.parse(first);
+        } catch (Exception e) {
+            firstDate = today;
+        }
+        int shown = 0;
+        for (LocalDate date = today; !date.isBefore(firstDate); date = date.minusDays(1)) {
+            if (!seen.contains(date.toString())) continue;
+            shown++;
+            final Verse verse = VerseRepository.verseOnDate(this, date);
+            final String label = date.equals(today) ? "Today"
+                    : date.equals(today.minusDays(1)) ? "Yesterday"
                     : date.getDayOfWeek().getDisplayName(
                             java.time.format.TextStyle.FULL, Locale.getDefault())
                     + ", " + date.getDayOfMonth() + " "
@@ -576,9 +728,16 @@ public class MainActivity extends Activity {
             row.setOnClickListener(v -> showHistoryVerse(verse, label));
             historyList.addView(row);
         }
+        if (shown == 0) {
+            TextView empty = new TextView(this);
+            empty.setText("No history yet — come back tomorrow.");
+            empty.setTextColor(getColor(R.color.muted));
+            empty.setPadding(dp(16), dp(16), dp(16), dp(16));
+            historyList.addView(empty);
+        }
     }
 
-    /** Full verse from history, with save / share / image actions. */
+    /** Full verse from history, with save / share / image / listen actions. */
     private void showHistoryVerse(final Verse verse, String dateLabel) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -631,6 +790,13 @@ public class MainActivity extends Activity {
             shareImg.setOnClickListener(v -> shareVerseAsImage(verse));
             btnRow.addView(shareImg);
         }
+        Button listen = new Button(this, null,
+                android.R.attr.borderlessButtonStyle);
+        listen.setText("🔊 Listen");
+        listen.setAllCaps(false);
+        listen.setTextColor(getColor(R.color.primary));
+        listen.setOnClickListener(v -> TtsSpeaker.toggle(MainActivity.this, verse));
+        btnRow.addView(listen);
         layout.addView(btnRow);
 
         new AlertDialog.Builder(this)
@@ -667,9 +833,16 @@ public class MainActivity extends Activity {
             showWallpaperDialog(isChecked);
         });
 
+        darkSwitch.setChecked(prefs.getBoolean("dark_mode", false));
+        darkSwitch.setOnCheckedChangeListener((v, checked) -> {
+            prefs.edit().putBoolean("dark_mode", checked).apply();
+            recreate();
+        });
+
         setupTimePresets();
         setupSupportButton();
         setupTextSizeRow();
+        setupLanguageRow();
 
         inviteButton.setOnClickListener(v -> {
             String text = "I start my mornings with Sacred Verses — "
@@ -692,18 +865,33 @@ public class MainActivity extends Activity {
             final float scale = TEXT_SIZE_SCALES[i];
             Button b = makeChip(TEXT_SIZE_LABELS[i]);
             boolean sel = Math.abs(cur - scale) < 0.01f;
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(sel ? 0xFF4A3F8C : 0xFFE7E3F7);
-            bg.setCornerRadius(dp(14));
-            b.setBackground(bg);
-            b.setTextColor(getColor(sel ? android.R.color.white : R.color.primary));
-            int h = dp(6), w = dp(12);
-            b.setPadding(w, h, w, h);
+            paintChip(b, sel);
             b.setOnClickListener(v -> {
                 prefs.edit().putFloat("font_scale", scale).apply();
                 recreate();
             });
             textSizeRow.addView(b);
+        }
+    }
+
+    /** Verse language: English (304 verses, five faiths) or हिन्दी (starter
+     *  collection of Kabir, Tulsidas, Rahim and Sanskrit shlokas). */
+    private void setupLanguageRow() {
+        languageRow.removeAllViews();
+        boolean hindi = VerseRepository.isHindi(this);
+        String[] labels = {"English", "हिन्दी"};
+        String[] values = {"en", "hi"};
+        for (int i = 0; i < labels.length; i++) {
+            final String val = values[i];
+            Button b = makeChip(labels[i]);
+            boolean sel = hindi ? "hi".equals(val) : "en".equals(val);
+            paintChip(b, sel);
+            b.setOnClickListener(v -> {
+                prefs.edit().putString("verse_lang", val).apply();
+                currentFilter = "All";
+                recreate();
+            });
+            languageRow.addView(b);
         }
     }
 
@@ -764,7 +952,7 @@ public class MainActivity extends Activity {
         idView.setTypeface(android.graphics.Typeface.MONOSPACE);
         idView.setTextSize(17);
         idView.setPadding(pad, pad / 2, pad, pad / 2);
-        idView.setBackgroundColor(0xFFF0F0F0);
+        idView.setBackgroundColor(isDark() ? 0xFF2A2438 : 0xFFF0F0F0);
         idView.setOnClickListener(v -> {
             ClipboardManager cm =
                     (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -859,13 +1047,7 @@ public class MainActivity extends Activity {
             } else {
                 sel = (t[0] == hour && t[1] == minute);
             }
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(sel ? 0xFF4A3F8C : 0xFFE7E3F7);
-            bg.setCornerRadius(dp(14));
-            b.setBackground(bg);
-            b.setTextColor(getColor(sel ? android.R.color.white : R.color.primary));
-            int h = dp(6), w = dp(12);
-            b.setPadding(w, h, w, h);
+            paintChip(b, sel);
         }
     }
 
@@ -901,8 +1083,10 @@ public class MainActivity extends Activity {
                         .setMessage("One verse from the world's scriptures, every morning.\n\n"
                                 + "Verses come from public-domain translations: the King James Bible, "
                                 + "Edwin Arnold's Bhagavad Gita (1885), Pickthall's Qur'an (1930), "
-                                + "Max Müller's Dhammapada (1881), the JPS 1917 Tanakh, and Macauliffe's "
-                                + "The Sikh Religion (1909).\n\nVersion 2.0 · Made with care.")
+                                + "Max Müller's Dhammapada (1881), and Macauliffe's "
+                                + "The Sikh Religion (1909) — plus a Hindi starter collection of "
+                                + "Kabir, Tulsidas, Rahim and Sanskrit shlokas with Hindi meanings.\n\n"
+                                + "Version 3.0 · Made with care.")
                         .setPositiveButton("OK", null)
                         .show());
     }

@@ -28,8 +28,7 @@ public class VerseWidgetProvider extends AppWidgetProvider {
             if (ids.length == 0) return;
             SharedPreferences p =
                     ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
-            Verse verse = VerseRepository.verseOfDay(
-                    ctx, p.getString("pref_faith", "All"));
+            Verse verse = VerseRepository.verseToday(ctx);
             for (int id : ids) {
                 RemoteViews rv = new RemoteViews(ctx.getPackageName(),
                         R.layout.verse_widget);

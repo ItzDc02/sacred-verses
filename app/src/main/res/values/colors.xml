@@ -8,4 +8,7 @@
     <color name="ink">#2B2620</color>
     <color name="muted">#8A8177</color>
     <color name="ic_launcher_background">#4A3F8C</color>
+    <color name="divider">#E9E2D2</color>
+    <color name="navbg">#FFFFFF</color>
+    <color name="card_stroke">#E9E2D2</color>
 </resources>

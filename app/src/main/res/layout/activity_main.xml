@@ -7,6 +7,7 @@
 
     <!-- Header (fixed on all screens) -->
     <LinearLayout
+        android:id="@+id/headerBar"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -68,6 +69,12 @@
                 android:layout_height="wrap_content">
 
                 <LinearLayout
+                    android:id="@+id/festivalSlot"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <LinearLayout
                     android:orientation="vertical"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -78,6 +85,7 @@
                     android:padding="20dp">
 
                     <TextView
+                        android:id="@+id/todayLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="VERSE OF THE DAY"
@@ -144,6 +152,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="🖼 Image"
+                            android:textColor="@color/primary" />
+
+                        <Button
+                            android:id="@+id/todayListen"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🔊 Listen"
                             android:textColor="@color/primary" />
                     </LinearLayout>
                 </LinearLayout>
@@ -242,7 +258,7 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginTop="4dp"
                     android:layout_marginEnd="16dp"
-                    android:text="Your last 30 days of verses. Tap any day to revisit it."
+                    android:text="Verses from the days you've opened the app. Tap any day to revisit it."
                     android:textSize="12sp"
                     android:textColor="@color/muted" />
 
@@ -291,6 +307,15 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:text="Verse as lockscreen wallpaper"
+                        android:textSize="14sp"
+                        android:textColor="@color/ink" />
+
+                    <Switch
+                        android:id="@+id/darkSwitch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Dark theme"
                         android:textSize="14sp"
                         android:textColor="@color/ink" />
 
@@ -357,6 +382,23 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp" />
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="VERSE LANGUAGE"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/muted"
+                        android:letterSpacing="0.12" />
+
+                    <LinearLayout
+                        android:id="@+id/languageRow"
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
+
                     <Button
                         android:id="@+id/inviteButton"
                         style="?android:attr/borderlessButtonStyle"
@@ -412,14 +454,14 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#E9E2D2" />
+        android:background="@color/divider" />
 
     <!-- Bottom navigation -->
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/navbg"
         android:paddingTop="4dp"
         android:paddingBottom="4dp">
 

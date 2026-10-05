@@ -5,4 +5,9 @@
         <item name="android:statusBarColor">@color/primary</item>
         <item name="android:windowBackground">@color/bg</item>
     </style>
+    <style name="Theme.SacredVerses.Dark" parent="android:Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">@color/primary</item>
+        <item name="android:statusBarColor">@color/navbg</item>
+        <item name="android:windowBackground">@color/bg</item>
+    </style>
 </resources>

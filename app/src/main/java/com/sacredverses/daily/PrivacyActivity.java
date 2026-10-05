@@ -1,6 +1,9 @@
 package com.sacredverses.daily;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -11,8 +14,25 @@ import java.io.InputStreamReader;
 
 /** Simple screen showing the bundled privacy policy. */
 public class PrivacyActivity extends Activity {
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        SharedPreferences p =
+                newBase.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        Configuration cfg = new Configuration(newBase.getResources().getConfiguration());
+        int night = p.getBoolean("dark_mode", false)
+                ? Configuration.UI_MODE_NIGHT_YES
+                : Configuration.UI_MODE_NIGHT_NO;
+        cfg.uiMode = (cfg.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | night;
+        super.attachBaseContext(newBase.createConfigurationContext(cfg));
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SharedPreferences p = getSharedPreferences("settings", MODE_PRIVATE);
+        if (p.getBoolean("dark_mode", false)) {
+            setTheme(R.style.Theme_SacredVerses_Dark);
+        }
         super.onCreate(savedInstanceState);
 
         ScrollView scroll = new ScrollView(this);

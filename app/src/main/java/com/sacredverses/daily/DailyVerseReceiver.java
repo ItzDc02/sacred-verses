@@ -10,8 +10,7 @@ public class DailyVerseReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context ctx, Intent intent) {
         SharedPreferences prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
-        String faith = prefs.getString("pref_faith", "All");
-        Verse verse = VerseRepository.verseOfDay(ctx, faith);
+        Verse verse = VerseRepository.verseToday(ctx);
         if (prefs.getBoolean("wallpaper_enabled", false)) {
             boolean ok = WallpaperHelper.setVerseWallpaper(ctx, verse);
             if (ok) {
